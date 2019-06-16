@@ -1,0 +1,348 @@
+---
+title: "Energy, Price and GDP evaluation report for years 2010-2014"
+output:
+  html_notebook: default
+  pdf_document: default
+name: Siddappa Ramgiri Bhavya
+---
+
+
+#### Research Question:
+##### The question is - which are the top ranked states in the US which have high GDP and have high consumption of non-polluting renewable energy resources and also have lower average energy prices. 
+##### Relevance: The purpose is to show that states which rely on non polluting renewable energy resources can also have highGDP and lower energy prices.This analysis explores whether there is an economic case to be made for adopting non polluting renewable energy resources. 
+
+```{r}
+copyfrom <- ("C:/Users/Veeru/Downloads/EnergyCensus&EconomicDataUS2010-2014.csv")
+copyto <- ("C:/Users/Veeru/Documents/R_script_assignment2")
+file.copy(from = copyfrom, to=copyto, overwrite = TRUE, recursive = FALSE, copy.mode =TRUE)
+```
+
+##### Setting my working data
+```{r}
+setwd("C:/Users/Veeru/Documents/R_script_assignment2")
+getwd()
+```
+
+##### Uploading necessary packages
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)#for table creation
+library(ggpubr)
+```
+
+##### Since the first line is header, setting header is equal to TRUE.
+```{r}
+df <- read.table("EnergyCensus&EconomicDataUS2010-2014.csv", header = TRUE, sep = ",")
+```
+
+##### Attributes give me all variable names, so that i can refer it in case of requirement
+```{r}
+attributes(df)
+```
+
+##### Glimpse/str gives the type of variables.The first two variables are categorical and rest all are continuous. The df has 52 observations and 192 variables. The subset of data frame i am choosing for my question is the average price variable, the GDP variables, the geothermal consumption and hydro power consumption variables for answering my question.
+```{r}
+str(df)
+```
+
+
+##### checking for any NA's in the df and we have 8 of them.
+```{r}
+table(is.na(df))
+```
+
+```{r}
+na <- df%>%select(everything()) %>% summarise_all(funs(sum(is.na(.))))
+na
+```
+
+##### shows the row number and the position where NA's are found.[rows,columns]
+This means that 52nd row is incomplete, this row has the data for US as whole which i do not need since my focus is on states.
+```{r}
+df[!complete.cases(df),]
+```
+
+##### removing the row with NAs
+The rows are reduced from 52 to 51, which is the actual number of states.
+```{r}
+new_df <- na.omit(df)
+nrow(new_df)
+```
+
+##### Creating data frame "GDP" which has GDP values for each state from 2010 to 2014 adding new variable "mean_gdp" which has mean calculated from the 5 years of GDP values for each state 
+```{r}
+gdp <- new_df %>% select(2,142,147,152,157,162) %>%
+mutate(mean_gdp=(GDP2010+GDP2011+GDP2012+GDP2013+GDP2014)/5)
+names(gdp)
+```
+
+##### Since the plot consisting for all years GDP values is messy and doesnt help in answering the question, focusing only on the mean GDP values for creating plot
+
+##### Arranging according to the states which have higher GDP values, California Ranks first with GDP $2130822.40 in million USD
+```{r}
+gdpmean <- gdp %>% select(1,7) %>% arrange(desc(mean_gdp)) 
+gdpmean
+```
+
+
+##### creating a subset of Average Price named "total_price". This data frame has variables having Average Price from 2010 to 2014 for each state. The average price is in USD per million BTU.New Variable mean_price is created which has the mean values of all five years. Note: BTU - British Thermal Unit
+```{r}
+total_price <- new_df %>% select(2,22:26) %>%
+mutate(mean_price=(TotalPrice2010+TotalPrice2011+TotalPrice2012+TotalPrice2013+
+TotalPrice2014)/5)
+names(total_price)
+```
+
+#####The price to be arranged from smaller to greater, since the part of my question is to find the states that pay least price for their energy. Louisiana stands to be on top, the average price for energy is $15.93. Hawaii pays highest that is $37 
+```{r}
+pricemean <- total_price %>% select(1,7) %>% arrange((mean_price))
+pricemean
+```
+
+##### Creating a subset of states consuming geo-thermal energy.New column called "geo_mean" is created, this column has the average value from the year 2010-2014. The states are then arranged according to the one consuming high geo-thermal energy.
+```{r}
+geo_con <- new_df %>% select(2,88:92) %>% mutate(geo_mean=(GeoC2010+GeoC2011+GeoC2012+GeoC2013+GeoC2014)/5)
+names(geo_con)
+```
+
+```{r}
+gmean <- geo_con %>% select(1,7) %>% arrange(desc(geo_mean))
+gmean
+```
+
+##### Creating a subset of states consuming hydro-power.New column called "hydro_mean" is created, this column has the average value from the year 2010-2014. The states are then arranged according to the one consuming higher hydro power.
+```{r}
+hydro_con <- new_df %>% select(2,98:102) %>% mutate(hydro_mean=(HydroC2010+HydroC2011+HydroC2012+HydroC2013+HydroC2014)/5)
+names(hydro_con)
+```
+
+```{r}
+hmean <- hydro_con %>% select(1,7) %>% arrange(desc(hydro_mean))
+hmean 
+```
+##### The lollipop plot. This plot represents the top twenty states among the 51 states of USA who have higher GDP value.
+```{r}
+gdp_plot <- ggplot(gdpmean[1:20,], aes(x=mean_gdp, y=reorder(State,mean_gdp))) + geom_point(size=5,color="#66CC33",alpha=0.7)+labs(x = "Average GDP(in million USD)", y="States", title="Top 20 States with highest GDP from 2010-2014")+theme_bw() + theme(axis.title.y=element_blank(),panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank()) + geom_segment(aes(y=State, x=0, yend=State, xend=mean_gdp),color="#66CC33",alpha=0.3 )
+```
+
+##### Data for table creation
+```{r}
+gdp_table <- cbind(State=c("California","Texas","New York", "Florida","Illinois","Pennsylvania","Ohio","New Jersey","North Carolina","Virginia"),
+AverageGDP=c("2130822.40","1434499.30","1292133.65","772514.65","701511.90","627958.05","541790.95","516889.80","442848.80","442823.00"))
+gdp_table
+```
+
+
+##### The table gives the information of top ten states which are having higher Average GDP in five years, 2010 to 2014
+```{r}
+qplot(1:10, 1:10, geom = "blank") + theme_bw() + theme_void() + annotation_custom(grob = tableGrob(gdp_table))
+```
+
+#####  To adjust the proportions of width to height (padding) and the size of the text and cells (base_size).
+```{r}
+gdp_plot+annotation_custom(tableGrob(gdp_table, theme = ttheme_default(base_size = 8, padding = unit(c(3,3),"mm"))), xmin=3000000, xmax=400000, ymin=2, ymax=15)
+#ggsave(file="gdp.png",height=6, dpi=300)
+```
+
+##### The Lollipop plot for Lowest Average price. 
+
+#### Limitation 1:
+
+#####I found geom_segment difficult to plot when using with xlim(). The points originally where plotting at far left, so i used xlim() so that i could use space to plot table. But geom_segment() does not plot well when using xlim(). I had to specially use scale_x_continuous() function to expand and set limits manually for geom_segment() to work.
+```{r}
+price_plot <- ggplot(pricemean[1:20,], aes(x=mean_price, y=reorder(State,mean_price))) + geom_point(size=5,color="#FFCC00",alpha=0.7)+labs(x = "Average Price(in USD/million BTU)", y="States", title="Top 20 states with low energy prices from 2010-2014")+theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(),axis.title.y=element_blank()) +geom_segment(aes(y=State, x=13, yend=State, xend=mean_price),color="#FFCC00",alpha=0.3 )+scale_x_continuous(expand = c(13, 30))+scale_x_continuous(limits = c(13, 30))
+```
+
+
+##### The Table data for Average Price table
+```{r}
+price_table <- cbind(State=c("Louisiana","North Dakota","Indiana", "Iowa","Wyoming","Illinois","Nebraska","Arkansas","Texas","Alabama"),
+Average_price=c("15.928","17.286","17.296","17.626","17.760","18.766","18.900","18.992","19.028","19.108"))
+price_table
+```
+
+#####  To adjust the proportions of width to height (padding) and the size of the text and cells (base_size).
+```{r}
+price_plot+annotation_custom(tableGrob(price_table, theme = ttheme_default(base_size = 8, padding = unit(c(3,3),"mm"))), xmin=25, xmax=30, ymin=2, ymax=15)
+#ggsave(file="price.png",height=6, dpi=300)
+```
+
+##### Top ten states with high geo thermal energy consumption in billion BTU is combined with top ten states with high hydro power consumption in billion BTU(British thermal units) and is then saved in data frame "green_energy"
+```{r}
+geo<-gmean[1:10,]
+hydro <- hmean[1:10,]
+geo <- mutate(geo, EnergyResource="Geo-Thermal")
+hydro <- mutate(hydro, EnergyResource="Hydro-Power")
+names(geo)[2] <- "mean"
+names(hydro)[2] <- "mean"
+green_energy <- rbind(geo,hydro)
+green_energy
+```
+
+
+##### The data frame green_energy is then used to plot grouped bar graph showing top 10 states consuming Geothermal energy and top 10 states consuming Hydro power. 
+```{r}
+ggplot(data=green_energy, aes(x=reorder(State,mean),y=mean,fill=EnergyResource)) + geom_col(position="dodge",stat="identity") + coord_flip() +ggtitle("Top 10 states under the category of higher geo thermal \nconsumpton and hydro power consumption")+scale_fill_grey()+labs(y = "Consumption  in billion BTU")+theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank(),axis.title.y=element_blank())+geom_segment(aes(x = 15.7, y = 340000, xend = 15.7, yend = 300000),size=1,lineend = "round",alpha=0.1,color="#666666", linejoin = "round",arrow = arrow(length = unit(0.3, "cm")))+ annotate("text",color="#666666", x = 15.7, y = 550000,size=3.5,label = "California is the only state among \ntop 10 states consuming both \nGeo-Thermal and Hydro-Electric")
+```
+
+
+
+##### Combining dataframe 'pricemean' which has the states arranged with respect to lower average price on Energy and 'gmean which has the states sorted according to higher geo thermal consumption and 'hmean'which has states sorted as per higher hydro power consumption and 'gdpmean' which has states ordered as per high GDP value. All these dataframe combined to data frame 'total'.
+###### The total data frame is then filtered to align the states which have greater hydro and geo thermal consumption, Less average price in energy and greater GDP
+```{r}
+total1<- left_join(pricemean,gmean, by ='State')
+total2 <- left_join(total1,hmean, by = 'State')
+total <- left_join(total2,gdpmean, by = 'State')
+total
+```
+
+##### The Highest Average price is of Hawaii which is $36.978/million BTU of energy.
+##### Connecticut has lowest Geo Thermal consumption which is 20.4 billions BTU.
+##### Disctrict of Columbia, Delaware and Missisippi had no hydro electric consumption.
+##### Vermount having least GDP of $28077.90 in million USD
+
+##### Using filter, sorting the data frame such that Average price is sorted in the order less than hawaii, geo thermal consumption gretaer than connecticut's, Hydro power consumption greater than 0 and GDP greater than Vermount's
+
+##### The intention behind this to get a dataframe which gets the states aligned to having higher geo thermal and hydro power consumption, having higher GDP and also having less average price of Energy.
+
+
+```{r}
+filter(total, mean_price<=36.978, mean_gdp>=28077.90, geo_mean>=20.4, hydro_mean>=0.0)
+```
+
+#### Limitation2: 
+
+#####Unfortunately, Filter function only aligns the states with respect to first variable and other three as tie breakers. For instance Louisiana has less Average price, but it has less geo thermal/hydro power consumption and less GDP and still tops the list and Texas has higher GDP but less hydro consumption than louisiana and greater geo thermal consumption than louisiana and still in ninth place. 
+
+##### I want the states to be sorted which are majority of top ranks satisfying the conditions to answer my question.
+
+##### Using arrange function to check if my question can be answered and it produces the same result as above.
+```{r}
+arrange(total, mean_price, desc(geo_mean),desc(hydro_mean),desc(mean_gdp))
+```
+
+
+##### Unsucessfull by above attempts, I will  rank states in each four Data frame of high GDP,geo thermal/hydro power consumption and least average price. At the end i will add all the ranks and arrange the state which has least sum value. This list is the answer for my question.
+
+##### Ranking the states as per the higher GDP values
+```{r}
+gdp_rank <- gdpmean %>% select(1) %>% mutate(gdprank = 1:n())
+gdp_rank
+```
+
+##### Ranking the states having less Average price on their Energy
+```{r}
+price_rank <- pricemean %>% select(1) %>% mutate(pricerank = 1:n())
+price_rank
+```
+
+##### Ranking the states consuming more Geo thermal energy
+```{r}
+geo_rank <- gmean %>% select(1) %>% mutate(georank = 1:n())
+geo_rank
+```
+
+##### Ranking the state consuming more hydro power
+```{r}
+hydro_rank <- hmean %>% select(1) %>% mutate(hydrorank = 1:n())
+hydro_rank
+```
+
+
+##### joining all the above dataframe and adding their rank to find the states which answer the question
+```{r}
+rank1<- left_join(price_rank,geo_rank, by ='State')
+rank2 <- left_join(rank1,hydro_rank, by = 'State')
+rank3 <- left_join(rank2,gdp_rank, by = 'State')
+rank4 <- mutate(rank3, states_rank=(pricerank+georank+hydrorank+gdprank))
+ranking <- arrange(rank4, states_rank)
+ranking
+```
+
+
+##### The Answer to my question
+```{r}
+state_rank <- ranking %>% select(1) %>% mutate(rank = 1:n())
+state_rank
+```
+
+
+##### Using map_data() function to get state Data frame, the state names are mentioned under region variable. I will have to change the 'State' variable name to region so that i can merge my dataframe 'state_rank' with that of ggplot's 'state' dataframe.
+```{r}
+state0 <- map_data("state")
+str(state0)
+```
+
+##### Changing the 'state_rank' data frame's variable name of 'States' to 'region'.Also, the state names in ggplots 'state' data frame is all lower case and 'state_rank' data frame's state names are in caps. Therefore converting them to lower case for merging purpose.Additionally, 'state_rank' data frame has state variable of factor class, coverting it to character class as it is in ggplot's 'state' data frame for 'region' variable. 
+```{r}
+names(state_rank)[1]<-"region"
+state_rank$region <- as.character(state_rank$region)
+state_rank$region <- tolower(state_rank$region)
+str(state_rank)
+```
+
+##### merging the data frame 'state_rank' and 'state0'
+```{r}
+map <- merge(state0,state_rank)
+map
+```
+
+
+##### Plotting the polygon map, with darker shade assigned to higher rank and lighter to lower.(theme_map() did not work and to use theme_void() instead)
+```{r}
+statemap <- ggplot(map, aes(x=long, y= lat, fill=rank, group=group))+geom_polygon(col="white") + coord_map()+theme_void()
+statemap
+```
+
+
+##### Creating dataframe 'labs' for latitude and longitude points for the top five states.
+```{r}
+labs <- data.frame( long = c(-119.4179,-99.9018,-120.7401,-85.6024,-77.1945),lat = c(36.7783,31.9686,47.7511,44.3148,41.2033))  
+```
+
+
+##### plotting the points on the map which represents the top five countries which aligns with the question's requirements.
+```{r}
+plotmap <- statemap + geom_point(data = labs, aes(x = long, y = lat, group=NULL), shape = 21, color = "black",fill = "yellow", size = 3) + annotate(geom="text", x=-124, y=35.7783,label="California",color="black",size=3.5) + annotate(geom="text", x=-102.9018, y=29, label="Texas",color="black",size=3.5) + annotate(geom="text", x=-119.7401, y=49.7511, label="Washington",color="black",size=3.5) + annotate(geom="text", x=-80, y=44.3148, label="Michigan",color="black",size=3.5) + annotate(geom="text", x=-68.1945, y=41.2033, label="Pennsylvania",color="black",size=3.5)
+```
+
+
+```{r}
+plotmap +ggtitle("Top 5 states with highest GDP using hydro power & geothermal energy \n and with low average energy price in $/MMBTU")
+```
+
+
+##### Unable to plot the table on the map, since it is only allowed for cartesians co-ordinates. ggarrange() can be used to include the map and table in one plot, but the map looked stretched.
+```{r}
+mytable <- cbind(State=c("California","Texas","Washington","Michigan","Pennsylvania"),Rank=c("1st","2nd","3rd","4th","5th"))
+qplot(1:10, 1:10, geom = "blank") + theme_bw() + theme_void() + annotation_custom(grob = tableGrob(mytable))
+```
+##### New Jersey Data
+```{r}
+NJ <- cbind(Category=c("GDP","Average price \non energy","Geo thermal \nconsumption","Hydro power \nconsumption"),Values=c(516889.80, 23.28, 456.2, 170.8),Rank=c("8","37","34","46"))
+qplot(1:10, 1:10, geom = "blank") + theme_bw() + theme_void() + annotation_custom(grob = tableGrob(NJ)) + ggtitle("New jersey Economic and Energy evaluation from 2010-2014")+ theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+
+#### Appendix A:
+data source: https://www.kaggle.com/lislejoem/us_energy_census_gdp_10-14
+The GDP lollipop plot
+gdp_plot:                                                 a)ggplot(gdpmean[1:20,], aes(x=mean_gdp, y=reorder(State,mean_gdp)))I am choosing only 20 states value which are sorted in gdpmean data frame with higher gdp values coming first. Choosing all 50 states does not produce clear plot, however clear plots can be achieved by using ggsave() function allowing the plot to be saved with height and width we choose, this does give clear plots since the states are spread out but those plot do not fit on power point presentation. 'Y' axis is assigned to state name, by using reorder option so that in plot the states are aligned in the same order as in my data frame.                      b) geom_point(size=5,color="#66CC33",alpha=0.7)+labs(x = "Average GDP(in million USD)", y="States", title="Top 20 States with highest GDP from 2010-2014")+theme_bw()                                                geom_point() is plot the dots, the size and color is added. All the labels are specified under labs() function. theme_bw() replaces the exsisting plot background to white.                    c)theme(axis.title.y=element_blank(),panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank())                             Inside theme() function 'y' title is removed since i found it unnecessary, border, grids, tick are removed too.                                  d)gdp_table:                                                                  For table insertion in the lollipop plot, new data frame gdp_table is created for top ten states having higher GDP. cbind() is column bind for variables to align one beside each other.                                               e)qplot: quick plot to plot table. I have plotted with empty background so that the table can be placed over the lollipop plot.                                Average Price lollipop plot
+The lollipop plot for least average price for top 20 states
+
+geom_segment(aes(y=State, x=13, yend=State, xend=mean_price),color="#FFCC00",alpha=0.3 )+scale_x_continuous(expand = c(13, 30))+scale_x_continuous(limits = c(13, 30))
+I found geom_segment difficult to plot when using with xlim(). The points originally where plotting at far left, so i used xlim() so that i could use space to plot table. But geom_segment() does not plot well when using xlim(). I had to specially use scale_x_continuous() function to expand and set limits manually for geom_segment() to work.  Rest of the plot attributes are changed same as for GDP lollipop plot.
+
+Geo thermal and  hydro power bar plot:
+The idea behind this plot is to merge the plot of top 10 high geothermal energy states with that of higher hydro power consuming states and show how many top states consume both hydro and geo thermal. As we see in the plot there are 19 states in total. Only california comes under top ten rank for both types of energy consumption.  
+In the code geom_col() is used instead of geom_bar(), since i wanted the bars to represent the values and not the counts.  The co-ordinates are flipped for bars to be horizontal.
+
+Mapping states which combine all the four condition that answer the question.
+All the data frames with mean calculated are joined together using  left_join() function.
+The function seems to joined it arranging the data on the basis first variable mentioned as argument . Since this does not answer my question used filter() function to arrange the states satisfying the four condition. Further tried arrange() function , got the same data frame as above.  
+I had to rank the states as per individual condition and them sum their ranks, the states with least amount of sum tops the list and answers my question. The same data frame is then used to plot it in map.
+
+To plot map, two data frame is required one the ranking data frame which i fond and other ggplots 'state' data frame. Both are merged , and plotted on map using ggplot(). The gradient is done as per the ranking and additional attributes are added. Points of top 5 states are plotted on the map using geom_point() feeding it with the latitude and longitude points to plot on map. 
