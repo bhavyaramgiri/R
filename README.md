@@ -5,4 +5,4 @@ energy census.rmd is the R notebook with R-codes focusing on data analysis. The 
 
 R code from scratch for logistic regression, kmeans clustering, liner regression with their pdfs for viewing the plots.
 
-PCA example with pdf and r code. 
+PCA example with pdf and r code: used FIFA.csv for features analysis.
