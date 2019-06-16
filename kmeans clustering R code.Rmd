@@ -1,0 +1,516 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+setwd("C:/Users/Veeru/Desktop/ML/week 2")
+getwd()
+```
+
+
+```{r}
+df1 <- read.csv("KMeansData_Group1.csv",header=FALSE, sep = ",")
+df1 <- na.omit(df1)
+str(df1)
+```
+
+
+####The thumb rule for considering number of clusters: sqrt(2/# observations)
+#### https://www.guru99.com/r-k-means-clustering.html#2
+```{r}
+k <- round(sqrt(2/nrow(df1)))
+k # this does not work. 
+```
+
+####Initialize a vector of length 10 for the scree plot, "nstart" is the number of times R will restart with different centroids(thumb rule nstart>10). "i" is the number of centers
+```{r}
+scree <- rep(0,10) #initializing empty vector
+for (i in 1:10){
+  df1_kmeans <- kmeans(df1,i,nstart=20)
+  scree[i] <- df1_kmeans$tot.withinss/df1_kmeans$totss # the ratio is as per datacamp
+}
+```
+
+
+```{r}
+scree # 10 possible values for centroids of clusters
+```
+
+
+####scree plot, the points below 0.2 or elbow point is best for clustering.
+```{r}
+plot(scree, type="b", xlab="number of k's")
+```
+
+
+####choosing arbitary number of centroid/clusters: 3 (from scree plot)
+```{r}
+k=3
+```
+
+
+####Empty vector called cluster_group is created. The motive is to store the assignment values in it.Each observation's distance from the 3 centroids will be calculated,the one which is the minimum is selected and that centroid is assigned to the observation.
+```{r}
+df <- read.csv("KMeansData_Group1.csv",header=FALSE, sep = ",")
+df <- na.omit(df)
+#df <- scale(df) # scaling is standardizing the data
+df$cluster_group <- NA
+str(df)
+```
+
+
+#### 3 of the cluster centers are choosed randomly and will be used as centroids. Euclidean distance formula will be used to compute the distance of each observation from three of these centroids 
+```{r}
+xcen <- sample(df$V1,k) 
+xcen
+ycen <- sample(df$V2,k)
+ycen
+```
+
+
+####In the above chunk, xcen and ycen are the vectors, which has randomly chosen values from the variables in dataframe df. Three values are chosen which represents the number of centroids from which the distance from rest of the observations will be calculated using euclidean distance formula and the same observations will be assigned to the centroid which is nearest(smaller distance) to them. 
+
+#### create random cluster centers
+```{r}
+# this is just for reference  or future use.
+#xcen <- runif(k, min = min(df$V1), max = max(df$V1))   
+#ycen <- runif(k, min = min(df$V2), max = max(df$V2))
+```
+
+
+#### cluster centroids choosed randomly from df variables are stored in seperate data-frame
+```{r}
+centroid_df <- data.frame(xcen = xcen, ycen = ycen)
+centroid_df
+```
+
+#### assign cluster with minimum distance to each observation
+```{r}
+for(i in 1:nrow(df)) {
+  dist <- sqrt((df$V1[i]-centroid_df$xcen)^2 + (df$V2[i]-centroid_df$ycen)^2)#euclidean 
+  df$cluster_group[i] <- which.min(dist)
+#filling the cluster_group variable with the assignments, i.e observations assined to the one of the three cluster. 
+}
+```
+
+
+####(df$V1[i]-centroid_df$xcen)^2 this produces vector of 3 elements
+[1] 71.701515767  9.889352276  0.004103784
+
+####The first observation of df$V1 and df$V2 subtracting the vector of the sample selected i.e 3 centroids. The distance which is the minimum is selected and is assigned with the respective cluster number.
+
+```{r}
+head(df)# each obervation is now assigned with their cluster numbers
+```
+
+```{r}
+# checking for the number of observation in each cluster
+nrow(subset(df, df$cluster_group == 1)) 
+nrow(subset(df, df$cluster_group == 2)) 
+nrow(subset(df, df$cluster_group == 3))
+```
+
+#### making another data frame ready for another set of centroids from the same dataframe
+```{r}
+x <- rep(NA,k)
+y <- rep(NA,k)
+centroid_upt <- data.frame(x,y)
+centroid_upt
+```
+
+#### updating the centroids values 
+```{r}
+for(i in 1:k) {
+  centroid_upt[i,1] <- mean(subset(df$V1, df$cluster_group == i))#xcen obs update
+  centroid_upt[i,2] <- mean(subset(df$V2, df$cluster_group == i))#ycen obs update
+  }
+```
+
+#### when i = 1, for 1st loop, the subset of observations which are assigned to cluster 1 are chosen from both the variables/columns i.e V1 and V2. mean for each variable's observations is calculated and is now the new centroid.Three such centroids are computed since we chose k=3 and stored in the new dataframe centroid_upt. This process will be continued untill there no change in the mean or in the centroids co-ordinates. 
+
+```{r}
+centroid_upt
+```
+
+# Combining all together
+```{r}
+# Kmeans function
+create_clusters <- function(df,k) {
+  
+  xcen <- sample(df$V1,k)
+  ycen <- sample(df$V2,k)
+  centroid_df <- data.frame(xcen = xcen, ycen = ycen)
+  stop_criteria <- FALSE
+
+    while(stop_criteria == FALSE) {
+#filling the cluster_group variable with the assignments, i.e observations assined to the one of the three cluster.      
+      for(i in 1:nrow(df)) {
+        dist <- sqrt((df$V1[i]-centroid_df$xcen)^2 + (df$V2[i]-centroid_df$ycen)^2)
+        df$cluster_group[i] <- which.min(dist)# which will give index number
+        }
+# storing the sample values computed for centroids, since we will be using to stop the iteration at a point.
+        xcen_old <- centroid_df$xcen          
+        ycen_old <- centroid_df$ycen 
+
+        # updating the centroids values 
+        for(i in 1:k) {
+          centroid_df[i,1] <- mean(subset(df$V1, df$cluster_group == i))
+          centroid_df[i,2] <- mean(subset(df$V2, df$cluster_group == i))
+          }
+
+        # stop the loop if there is no change in cluster coordinates
+        if(identical(xcen_old, centroid_df$xcen) & identical(ycen_old, centroid_df$ycen)) 
+          stop_criteria <- TRUE
+    } # while loop ends here
+    the_list <- list(df, centroid_df)
+    return(the_list)
+}# function ends here
+```
+
+
+
+```{r}
+df <- read.csv("KMeansData_Group1.csv",header=FALSE, sep = ",")
+df <- na.omit(df)
+#df <- scale(df)
+df$cluster_group <- NA
+str(df)
+k=3
+```
+
+```{r}
+df
+```
+
+
+```{r}
+plot_cluster <- create_clusters(df,3)
+data <- data.frame(plot_cluster[1])
+centers <- data.frame(plot_cluster[2])
+```
+
+
+```{r}
+ggplot(data, aes(V1, V2, color = as.factor(cluster_group))) + geom_point()
+```
+# The above plot seems to be of 5 clusters not 3
+```{r}
+pc <- create_clusters(df,5)
+data <- data.frame(pc[1])
+centers <- data.frame(pc[2])
+```
+
+
+```{r}
+distinct_cluster <- ggplot(data, aes(V1, V2, color = as.factor(cluster_group))) + geom_point()
+```
+
+
+```{r}
+distinct_cluster
+```
+
+
+#### Within sum of square is sum of summed up square distances between each point and the corresponding center of the cluster
+#### "df" is the data-frame which has the observations assigned to their respective centroids
+#### "centroid_df" is the data-frame which have centers of each cluster
+
+```{r}
+wss <- function(df,centroid_df) {
+  wss_tot = 0
+  for (i in 1:nrow(centroid_df)) {
+    sub_set <- subset(df, df$cluster_group == i)
+     for (s in 1:nrow(sub_set)) {
+       sum_obs <- (sub_set$V1[s] - centroid_df$xcen[i])^2 + (sub_set$V2[s] - centroid_df$ycen[i])
+       wss_tot = wss_tot + sum_obs
+     }
+  }
+  wss_tot
+}
+```
+
+
+#### for loop for clusters values varying from 1 to 10, so that wss is computed and by scree plot optimal clusters can be selected.
+```{r}
+scree <- rep(0,10)
+for (k in 1:10){
+  clusters <- create_clusters(df,k)
+  d <- data.frame(clusters[1])
+  c <- data.frame(clusters[2])
+  scree[k] <- wss(d, c)
+}
+```
+#### wss for 1 to 7 clusters are calculated, but from 8 to 10 are not. 
+```{r}
+scree
+```
+
+#### manually doing the for loop to check the error occurred
+```{r}
+wss_df <- rep(0,10) # i will be adding wss values from 1 to 10 clusters manually
+```
+
+#### Only 1 cluster
+```{r}
+clusters <- create_clusters(df,1)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for one cluster
+```{r}
+w <- wss(d,c)
+w
+```
+
+```{r}
+wss_df[1] <- w
+wss_df
+```
+
+#### 2 clusters
+```{r}
+clusters <- create_clusters(df,2)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 2 clusters
+```{r}
+wss_df[2] <- wss(d,c)
+wss_df
+```
+
+#### 3 clusters
+```{r}
+clusters <- create_clusters(df,3)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 3 clusters
+```{r}
+wss_df[3] <- wss(d,c)
+wss_df
+```
+
+#### 4 clusters
+```{r}
+clusters <- create_clusters(df,4)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 4 clusters
+```{r}
+wss_df[4] <- wss(d,c)
+wss_df
+```
+
+#### 5 clusters
+```{r}
+clusters <- create_clusters(df,5)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 5 clusters
+```{r}
+wss_df[5] <- wss(d,c)
+wss_df
+```
+
+#### 6 clusters
+```{r}
+clusters <- create_clusters(df,6)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 6 clusters
+```{r}
+wss_df[6] <- wss(d,c)
+wss_df
+```
+
+#### 7 clusters gives out NAN as centoids, this is the reason the for loop above was producing error
+```{r}
+clusters <- create_clusters(df,7)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### The chunk of code is repeatedly re-runned for NAN to be removed. 
+```{r}
+clusters <- create_clusters(df,7)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 7 clusters
+```{r}
+wss_df[7] <- wss(d,c)
+wss_df
+```
+
+#### 8 clusters after number of time re-running the chunk
+```{r}
+clusters <- create_clusters(df,8)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+
+#### wss for 8 clusters
+```{r}
+wss_df[8] <- wss(d,c)
+wss_df
+```
+
+
+#### 9 clusters(re-run chunk)
+```{r}
+clusters <- create_clusters(df,9)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 9 clusters
+```{r}
+wss_df[9] <- wss(d,c)
+wss_df
+```
+
+
+#### 10 clusters
+```{r}
+clusters <- create_clusters(df,10)
+d <- data.frame(clusters[1])
+c <- data.frame(clusters[2])
+d
+c
+```
+
+#### wss for 10 clusters.
+```{r}
+wss_df[10] <- wss(d,c)
+wss_df
+```
+
+
+#### elbow/scree plot is plotted for wss vs number of clusters and as per the elbow point which is 3 in this case, 3 should be choosed for computing kmeans for 3 number of clusters. In the scatter plot above we checked for both 3 and 5 clusters individually
+```{r}
+number_of_clusters <- 1:10
+plot(number_of_clusters,wss_df, type="b", xlab="number of k's")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+links referred:
+
+http://dni-institute.in/blogs/k-means-clustering-algorithm-explained/
+https://uc-r.github.io/kmeans_clustering#distance
+http://enhancedatascience.com/2017/10/24/machine-learning-explained-kmeans/
+https://github.com/mehdimo/K-Means/blob/master/kmeans_mehdi.R
+https://stackoverflow.com/questions/41912875/writing-own-kmeans-algorithm-in-r
+https://www.youtube.com/watch?v=j9ZPMlVHJVs within sum of square 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
