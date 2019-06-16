@@ -3,7 +3,7 @@ title: "Energy, Price and GDP evaluation report for years 2010-2014"
 output:
   html_notebook: default
   pdf_document: default
-name: Siddappa Ramgiri Bhavya
+name: Ramgiri Bhavya
 ---
 
 
@@ -12,14 +12,14 @@ name: Siddappa Ramgiri Bhavya
 ##### Relevance: The purpose is to show that states which rely on non polluting renewable energy resources can also have highGDP and lower energy prices.This analysis explores whether there is an economic case to be made for adopting non polluting renewable energy resources. 
 
 ```{r}
-copyfrom <- ("C:/Users/Veeru/Downloads/EnergyCensus&EconomicDataUS2010-2014.csv")
-copyto <- ("C:/Users/Veeru/Documents/R_script_assignment2")
+copyfrom <- ("C:/Users/x/y/EnergyCensus&EconomicDataUS2010-2014.csv")
+copyto <- ("C:/Users/x/y/R_script_assignment2")
 file.copy(from = copyfrom, to=copyto, overwrite = TRUE, recursive = FALSE, copy.mode =TRUE)
 ```
 
 ##### Setting my working data
 ```{r}
-setwd("C:/Users/Veeru/Documents/R_script_assignment2")
+setwd("C:/Users/x/y/R_script_assignment2")
 getwd()
 ```
 
@@ -330,7 +330,15 @@ qplot(1:10, 1:10, geom = "blank") + theme_bw() + theme_void() + annotation_custo
 #### Appendix A:
 data source: https://www.kaggle.com/lislejoem/us_energy_census_gdp_10-14
 The GDP lollipop plot
-gdp_plot:                                                 a)ggplot(gdpmean[1:20,], aes(x=mean_gdp, y=reorder(State,mean_gdp)))I am choosing only 20 states value which are sorted in gdpmean data frame with higher gdp values coming first. Choosing all 50 states does not produce clear plot, however clear plots can be achieved by using ggsave() function allowing the plot to be saved with height and width we choose, this does give clear plots since the states are spread out but those plot do not fit on power point presentation. 'Y' axis is assigned to state name, by using reorder option so that in plot the states are aligned in the same order as in my data frame.                      b) geom_point(size=5,color="#66CC33",alpha=0.7)+labs(x = "Average GDP(in million USD)", y="States", title="Top 20 States with highest GDP from 2010-2014")+theme_bw()                                                geom_point() is plot the dots, the size and color is added. All the labels are specified under labs() function. theme_bw() replaces the exsisting plot background to white.                    c)theme(axis.title.y=element_blank(),panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank())                             Inside theme() function 'y' title is removed since i found it unnecessary, border, grids, tick are removed too.                                  d)gdp_table:                                                                  For table insertion in the lollipop plot, new data frame gdp_table is created for top ten states having higher GDP. cbind() is column bind for variables to align one beside each other.                                               e)qplot: quick plot to plot table. I have plotted with empty background so that the table can be placed over the lollipop plot.                                Average Price lollipop plot
+gdp_plot:                                                 
+a)ggplot(gdpmean[1:20,], aes(x=mean_gdp, y=reorder(State,mean_gdp)))I am choosing only 20 states value which are sorted in gdpmean data frame with higher gdp values coming first. Choosing all 50 states does not produce clear plot, however clear plots can be achieved by using ggsave() function allowing the plot to be saved with height and width we choose, this does give clear plots since the states are spread out but those plot do not fit on power point presentation. 'Y' axis is assigned to state name, by using reorder option so that in plot the states are aligned in the same order as in my data frame.                      
+b) geom_point(size=5,color="#66CC33",alpha=0.7)+labs(x = "Average GDP(in million USD)", y="States", title="Top 20 States with highest GDP from 2010-2014")+theme_bw()                                                
+geom_point() is plot the dots, the size and color is added. All the labels are specified under labs() function. theme_bw() replaces the exsisting plot background to white.                    
+c)theme(axis.title.y=element_blank(),panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_blank(), axis.ticks = element_blank())                             
+Inside theme() function 'y' title is removed since i found it unnecessary, border, grids, tick are removed too.                                  d)gdp_table:                                                                  
+For table insertion in the lollipop plot, new data frame gdp_table is created for top ten states having higher GDP. cbind() is column bind for variables to align one beside each other.                                               
+e)qplot: quick plot to plot table. I have plotted with empty background so that the table can be placed over the lollipop plot.                                
+Average Price lollipop plot:
 The lollipop plot for least average price for top 20 states
 
 geom_segment(aes(y=State, x=13, yend=State, xend=mean_price),color="#FFCC00",alpha=0.3 )+scale_x_continuous(expand = c(13, 30))+scale_x_continuous(limits = c(13, 30))
